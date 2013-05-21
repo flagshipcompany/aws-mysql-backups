@@ -1,0 +1,17 @@
+{
+    "aws-settings" : {
+        "S3Key" : "",
+        "S3Secret" : ""
+                
+    },
+    "command-settings" :{
+        "mysql-full-backup": {
+            "db-name" : "MYDB",
+            "backup-path" : "/tmp",        
+            "db-user" : "USER",
+            "db-pass" : "PASS",
+            "aws-bucket": "MYS3BUCK"
+        }
+
+    }        
+}

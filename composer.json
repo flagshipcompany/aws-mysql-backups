@@ -1,0 +1,9 @@
+{
+    "require": {
+        "symfony/console": "2.2.*",
+        "aws/aws-sdk-php": "2.*"
+    },
+    "autoload": {
+        "psr-0": {"Flagship\\": "src\\"}
+    }
+}
