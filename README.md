@@ -17,5 +17,8 @@ _Make sure that awsbackup.php is executable_
 * Use ``--help`` to see how to overwrite parameters at run time. 
 * Use the ``--aws`` switch to upload the resulting gzip to AWS S3.
 
+## Todo (very soon) ##
+
+* Binary log rotation and backup
 
 
