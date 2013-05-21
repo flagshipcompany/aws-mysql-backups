@@ -2,3 +2,6 @@
 /config.json
 /vendor/
 /composer.lock
+DS_Store
+nbproject
+/.DS_Store
