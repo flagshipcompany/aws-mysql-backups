@@ -13,7 +13,9 @@ How to leverage the AWS PHP2 API to backup mysql
 
 _Make sure that awsbackup.php is executable_
 
-``awsbackup.php mysql:fullbackup`` will create a gzip backup of the database set in the config, with the credentials. use ``--help`` to see how to overwrite parameters at run time. ``--aws`` will upload the resulting file to AWS S3.
+* ``awsbackup.php mysql:fullbackup`` will create a gzip backup of the database set in the config, with the credentials. 
+* Use ``--help`` to see how to overwrite parameters at run time. 
+* Use the ``--aws`` switch to upload the resulting gzip to AWS S3.
 
 
 
