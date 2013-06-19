@@ -7,10 +7,19 @@
     "command-settings" :{
         "mysql-full-backup": {
             "db-name" : "MYDB",
-            "backup-path" : "/tmp",        
+            "backup-path" : "/tmp",
+            "backups-cleanup" : 7,
             "db-user" : "USER",
             "db-pass" : "PASS",
             "aws-bucket": "MYS3BUCK"
+        },
+        "mysql-binlogs-backup":{
+            "filename" : "mysqldbin",
+            "backups-cleanup" : 2,
+            "backup-path" : "/tmp",
+            "db-user" : "USER",
+            "db-pass" : "PASS",
+            "aws-bucket": "MYS3BUCK"        
         }
 
     }        

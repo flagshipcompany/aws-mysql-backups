@@ -3,15 +3,14 @@ namespace Flagship\Backup\Console\Helper;
 
 use Symfony\Component\Console\Helper\Helper;
 
-
 class ConfigHolderHelper extends Helper implements \ArrayAccess
 {
     protected $config;
-    
+
     public function __construct($configPath)
     {
       $this->config = json_decode(file_get_contents($configPath),true);
-      
+
     }
     public function getName()
     {
@@ -37,6 +36,5 @@ class ConfigHolderHelper extends Helper implements \ArrayAccess
     {
         unset($this->config[$offset]);
     }
-    
-    
+
 }

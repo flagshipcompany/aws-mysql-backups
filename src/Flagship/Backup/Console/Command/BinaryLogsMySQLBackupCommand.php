@@ -6,8 +6,8 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Input\ArrayInput;
 use Flagship\Backup\Console\Output\ProcOutput;
 
 /**
@@ -15,15 +15,13 @@ use Flagship\Backup\Console\Output\ProcOutput;
  *
  * @author pleblanc
  */
-class FullMySQLBackupCommand extends Command implements DifferedConfigureCommandInterface
+class BinaryLogsMySQLBackupCommand extends Command implements DifferedConfigureCommandInterface
 {
-
-    protected $s3Command;
 
     protected function configure()
     {
-        $this->setName('mysql:fullbackup')
-            ->setDescription('Makes a complete Datadump of mysql and uploads it to an AWS bucket');
+        $this->setName('mysql:binary-logs-backup')
+        ->setDescription('Flush the binary logs and backup the older one');
 
         //delay arguments and options settings since we require helpers.
     }
@@ -32,34 +30,46 @@ class FullMySQLBackupCommand extends Command implements DifferedConfigureCommand
     {
         $config = $this->getApplication()->getHelperSet()->get('configHolder');
 
-        $mysqlConf = $config['command-settings']['mysql-full-backup'];
+        $mysqlConf = $config['command-settings']['mysql-binlogs-backup'];
 
         $this
-            ->addArgument('db', InputArgument::REQUIRED, 'What db to backup?')
-            ->addOption('db-user', null, InputOption::VALUE_OPTIONAL, 'What user are we going to use on mysqldump?', $mysqlConf['db-user'])
-            ->addOption('db-pass', null, InputOption::VALUE_OPTIONAL, 'The password for the user', $mysqlConf['db-pass'])
-            ->addOption('backup-path', null, InputOption::VALUE_OPTIONAL, 'To which path the backup will be generated', $mysqlConf['backup-path'])
-            ->addOption('aws-bucket', null, InputOption::VALUE_OPTIONAL, 'To which S3 bucket the backup will be sent', $mysqlConf['aws-bucket'])
-            ->addOption('backups-cleanup', null, InputOption::VALUE_OPTIONAL, 'Delete all full backups older than X days', $mysqlConf['backups-cleanup'])
-            ->addOption('aws', null, InputOption::VALUE_NONE, 'Push the backup to AWS, provided it is properly configured');
+        ->addArgument('filename', InputArgument::OPTIONAL, 'What is the name of the binary log?', $mysqlConf['filename'])
+        ->addOption('db-user', null, InputOption::VALUE_OPTIONAL, 'What user is able to flush the logs?', $mysqlConf['db-user'])
+        ->addOption('db-pass', null, InputOption::VALUE_OPTIONAL, 'The password for the user', $mysqlConf['db-pass'])
+        ->addOption('backup-path', null, InputOption::VALUE_OPTIONAL, 'To which path the backup will be generated', $mysqlConf['backup-path'])
+        ->addOption('aws-bucket', null, InputOption::VALUE_OPTIONAL, 'To which S3 bucket the backup will be sent', $mysqlConf['aws-bucket'])
+        ->addOption('backups-cleanup', null, InputOption::VALUE_OPTIONAL, 'Delete all full backups older than X days', $mysqlConf['backups-cleanup'])
+        ->addOption('aws', null, InputOption::VALUE_NONE, 'Push the backup to AWS, provided it is properly configured');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
 
-        //$this->s3Command = $this->getApplication()->find('S3:Upload');
-        $dbName = $input->getArgument('db');
+        /**
+         * We're getting the most recent file that matches our pattern. This is the current binary log.
+         * Once the flush logs command will be executed, this log will be gzip and backup.
+         */
+        $files = glob($input->getArgument('filename') . '*', GLOB_NOSORT);
+        array_multisort(array_map('filemtime', $files), SORT_NUMERIC, SORT_DESC, $files);
+
+        $toBackup = $files[0];
 
         $dbuser = $input->getOption('db-user');
         $dbpass = $input->getOption('db-pass');
+
         $dbBackupsPath = $input->getOption('backup-path');
-        $backupName = date('Ymd_His') . '_' . $dbName . '_fullbackup.sql.gz';
+
+        if (!is_dir($dbBackupsPath)) {
+            mkdir($dbBackupsPath);
+        }
+
+        $backupName = date('Ymd_His') . '_binlog_backup.sql.gz';
 
         $gzipPath = $dbBackupsPath . DIRECTORY_SEPARATOR . $backupName;
 
         $dbpass = $dbpass != "" ? "-p$dbpass" : '';
 
-        $commandString = "mysqldump -u $dbuser $dbpass --add-drop-table --lock-all-tables --databases $dbName | gzip > $gzipPath";
+        $commandString = "mysqladmin -u $dbuser $dbpass flush-logs && gzip -c $toBackup > $gzipPath";
 
         if ($output instanceof ProcOutput) {
             $output->exec($commandString);
@@ -68,7 +78,6 @@ class FullMySQLBackupCommand extends Command implements DifferedConfigureCommand
         }
 
         $this->executeAws($input, $output, $gzipPath);
-
         $this->executeCleanup($input, $output, $dbBackupsPath);
     }
 
@@ -81,7 +90,7 @@ class FullMySQLBackupCommand extends Command implements DifferedConfigureCommand
                 'command' => 'aws:s3upload',
                 'filename' => $gzipPath,
                 'bucket-name' => $input->getOption('aws-bucket'),
-            );
+                );
 
             $input = new ArrayInput($arguments);
 
@@ -91,7 +100,7 @@ class FullMySQLBackupCommand extends Command implements DifferedConfigureCommand
 
     protected function executeCleanup($input, $output, $dbBackupsPath)
     {
-        $files = glob($dbBackupsPath . '/*_fullbackup.sql.gz');
+        $files = glob($dbBackupsPath . '/*_binlog_backup.sql.gz');
 
         $dateToFlush = strtotime("-{$input->getOption('backups-cleanup')} DAYS");
 
