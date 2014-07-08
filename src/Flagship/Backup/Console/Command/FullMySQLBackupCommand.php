@@ -59,7 +59,7 @@ class FullMySQLBackupCommand extends Command implements DifferedConfigureCommand
 
         $dbpass = $dbpass != "" ? "-p$dbpass" : '';
 
-        $commandString = "mysqldump -u $dbuser $dbpass --add-drop-table --lock-all-tables --databases $dbName | gzip > $gzipPath";
+        $commandString = "mysqldump -u $dbuser $dbpass --add-drop-database --add-drop-table --lock-all-tables --databases $dbName | gzip > $gzipPath";
 
         if ($output instanceof ProcOutput) {
             $output->exec($commandString);
