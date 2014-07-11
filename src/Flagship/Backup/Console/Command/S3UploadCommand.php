@@ -44,7 +44,7 @@ class S3UploadCommand extends Command
 
         $awsOutput = $client->putObject(array(
             'Bucket' => $input->getArgument('bucket-name'),
-            'Key' => basename($input->getArgument('filename')),
+            'Key' => date('Ym') . '/' . basename($input->getArgument('filename')),
             'Body' => \Guzzle\Http\EntityBody::factory(fopen($input->getArgument('filename'), 'r')),
             'ACL' => CannedAcl::PRIVATE_ACCESS,
             'ServerSideEncryption' => 'AES256',
